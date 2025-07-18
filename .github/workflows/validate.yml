@@ -1,0 +1,55 @@
+name: Validate Terraform Modules
+
+on:
+  pull_request:
+    paths:
+      - 'modules/**'
+      - '.github/workflows/validate.yml'
+  push:
+    branches: [dev, main]
+    paths:
+      - 'modules/**'
+      - '.github/workflows/validate.yml'
+
+jobs:
+  terraform-validate:
+    name: Validate Terraform Modules
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        module:
+          - efs
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Terraform Format Check
+        working-directory: modules/${{ matrix.module }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init and Validate
+        working-directory: modules/${{ matrix.module }}
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Install TFLint
+        run: curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+      - name: Run TFLint
+        working-directory: modules/${{ matrix.module }}
+        run: tflint --init && tflint
+        continue-on-error: false
+
+      - name: Validate README
+        uses: terraform-docs/gh-actions@v1
+        with:
+          working-dir: modules/${{ matrix.module }}
+          output-file: README.md
+          output-method: inject
