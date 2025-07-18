@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         module:
-          - compute-network
+          - efs
 
     steps:
       - uses: actions/checkout@v4
